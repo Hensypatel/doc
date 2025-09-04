@@ -17,12 +17,21 @@
 //   api_secret: "GE6NpQNRkt534fZYezrwk6H1fiE"
 // });
 
-// // 📂 Setup Multer storage with Cloudinary
+// // 📂 Setup Multer storage with Cloudinary (only .doc/.docx)
 // const storage = new CloudinaryStorage({
 //   cloudinary: cloudinary,
-//   params: {
-//     folder: "docx_uploads", 
-//     resource_type: "raw"   // for .docx, pdf, etc.
+//   params: async (req, file) => {
+//     // ✅ Validate file type
+//     if (!file.originalname.match(/\.(doc|docx)$/i)) {
+//       throw new Error("Only .doc and .docx files are allowed!");
+//     }
+
+//     return {
+//       folder: "docx_uploads",       // Cloudinary folder
+//       resource_type: "auto",        // auto-detects doc/docx
+//       format: file.originalname.split('.').pop(), // keep extension
+//       public_id: file.originalname.replace(/\.[^/.]+$/, ""), // keep name
+//     };
 //   },
 // });
 
@@ -89,53 +98,28 @@
 
 
 const express = require("express");
-const multer = require("multer");
 const mammoth = require("mammoth");
 const cors = require("cors");
 const fs = require("fs");
 const axios = require("axios");
-const cloudinary = require("cloudinary").v2;
-const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
 const app = express();
 app.use(cors());
+app.use(express.json()); // ✅ allow JSON body
 
-// 🔑 Configure Cloudinary
-cloudinary.config({
-  cloud_name: "dcpsnp9pa",
-  api_key: "484622966268613",
-  api_secret: "GE6NpQNRkt534fZYezrwk6H1fiE"
-});
-
-// 📂 Setup Multer storage with Cloudinary (only .doc/.docx)
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: async (req, file) => {
-    // ✅ Validate file type
-    if (!file.originalname.match(/\.(doc|docx)$/i)) {
-      throw new Error("Only .doc and .docx files are allowed!");
-    }
-
-    return {
-      folder: "docx_uploads",       // Cloudinary folder
-      resource_type: "auto",        // auto-detects doc/docx
-      format: file.originalname.split('.').pop(), // keep extension
-      public_id: file.originalname.replace(/\.[^/.]+$/, ""), // keep name
-    };
-  },
-});
-
-const upload = multer({ storage: storage });
-
-// 📌 Upload docx & convert to text
-app.post("/upload", upload.single("file"), async (req, res) => {
+// 📌 Extract text from DOCX/DOC file via URL
+app.post("/extract-text", async (req, res) => {
   try {
-    const cloudinaryUrl = req.file.path; // ✅ Cloudinary URL
+    const { fileUrl } = req.body;
+
+    if (!fileUrl) {
+      return res.status(400).json({ error: "fileUrl is required" });
+    }
 
     // 🔽 Download file temporarily
     const tempFilePath = `temp_${Date.now()}.docx`;
     const response = await axios({
-      url: cloudinaryUrl,
+      url: fileUrl,
       method: "GET",
       responseType: "arraybuffer"
     });
@@ -145,7 +129,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     const result = await mammoth.extractRawText({ path: tempFilePath });
     const plainText = result.value;
 
-    // 🧹 Clean temp file
+    // 🧹 Remove temp file
     fs.unlinkSync(tempFilePath);
 
     // 📑 Extract metadata
@@ -169,11 +153,12 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     });
 
     res.json({
-      fileUrl: cloudinaryUrl, // ✅ Stored on Cloudinary
-      bookName,
-      authorName,
-      chapters,
-      rawText: plainText
+      text: plainText,
+      metadata: {
+        bookName,
+        authorName,
+        chapters
+      }
     });
 
   } catch (err) {
@@ -182,6 +167,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   }
 });
 
+// 🚀 Start server
 app.listen(5000, () => {
-  console.log("🚀 Server running on http://localhost:5000");
+  console.log("✅ Server running on http://localhost:5000");
 });
