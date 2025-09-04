@@ -1,45 +1,12 @@
-// String: aaabbbacc
-// 1st Output: a= 4 b=3 c=2
-// 2nd Output: c=2 b=3 a=4
+const http = require('http');  // import http module
 
+// Create server
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' }); // set response header
+  res.end('Hello World!\n'); // send response
+});
 
-function Prog()
-{
-    let s1="aaabbbacc";
-    let count=[];
-    for(s of s1)
-    {
-      if(count[s])
-      {
-        count[s]++;
-      }
-      else
-      {
-        count[s]=1;
-      }
-    }
-    console.log(count);
-    let i=0;
-    for(c in count)
-    {
-        for(i=c;i>0;i++)
-        {
-            console.log(c[i]);
-        }
-    }
-    let
-
-}
-Prog();
-
-
-let str = "hello world";
-let result = str.split(" ").map(word =>
-    word.charAt(0).toUpperCase() + word.slice(1)
-).join(" ");
-console.log(result); 
-
-
-let str = "hello world";
-let vowels = str.match(/[aeiou]/gi);
-console.log(vowels ? vowels.length : 0); 
+// Start server
+server.listen(3000, () => {
+  console.log('Server running at http://localhost:3000/');
+});
