@@ -8,9 +8,13 @@ const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
 const app = express();
-app.use(cors());
-app.use(express.json());
 
+app.use(express.json());
+app.use(cors({
+  origin: "https://hensypatel4.wixstudio.com",
+  methods: ["GET", "POST"],
+  credentials: true
+}));
 // 🔑 Configure Cloudinary
 cloudinary.config({
   cloud_name: "dcpsnp9pa",
@@ -96,6 +100,5 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 app.listen(5000, () => {
   console.log("🚀 Server running on http://localhost:5000");
 });
-
 
 
