@@ -9,6 +9,7 @@ const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
 const app = express();
 app.use(cors());
+app.use(express.json());
 
 // 🔑 Configure Cloudinary
 cloudinary.config({
@@ -95,5 +96,6 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 app.listen(5000, () => {
   console.log("🚀 Server running on http://localhost:5000");
 });
+
 
 
