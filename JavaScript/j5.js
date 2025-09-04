@@ -52,8 +52,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     const response = await axios({
       url: cloudinaryUrl,
       method: "GET",
-      responseType: "arraybuffer",
-      timeout: 60000 
+      responseType: "arraybuffer"
     });
     fs.writeFileSync(tempFilePath, response.data);
 
@@ -101,6 +100,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 app.listen(5000, () => {
   console.log("🚀 Server running on http://localhost:5000");
 });
+
 
 
 
