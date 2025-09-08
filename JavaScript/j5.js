@@ -40,15 +40,16 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: async (req, file) => {
+    // ✅ Validate file type
     if (!file.originalname.match(/\.(doc|docx)$/i)) {
       throw new Error("Only .doc and .docx files are allowed!");
     }
 
     return {
-      folder: "docx_uploads",
-      resource_type: "auto",
-      format: file.originalname.split('.').pop(),
-      public_id: file.originalname.replace(/\.[^/.]+$/, "")
+      folder: "docx_uploads",       // Cloudinary folder
+      resource_type: "auto",        // auto-detects doc/docx
+      format: file.originalname.split('.').pop(), // keep extension
+      public_id: file.originalname.replace(/\.[^/.]+$/, ""), // keep name
     };
   },
 });
@@ -58,7 +59,7 @@ const upload = multer({ storage: storage });
 // 📌 Upload docx & convert to text
 app.post("/upload", upload.single("file"), async (req, res) => {
   try {
-    const cloudinaryUrl = req.file.path;
+    const cloudinaryUrl = req.file.path; // ✅ Cloudinary URL
 
     // 🔽 Download file temporarily
     const tempFilePath = `temp_${Date.now()}.docx`;
@@ -76,23 +77,30 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     // 🧹 Clean temp file
     fs.unlinkSync(tempFilePath);
 
-    // 📑 Extract metadata + chapters
+    // 📑 Extract metadata
     const lines = plainText.split("\n").map(l => l.trim()).filter(l => l);
 
-    let bookName = req.file.originalname.replace(/\.[^/.]+$/, "");
+    let bookName = "Unknown";
     let authorName = "Unknown";
     let chapters = [];
 
     let currentChapter = null;
 
-    lines.forEach((line) => {
-      // Detect chapters: "Chapter 1", "CHAPTER 2", etc.
-      if (/^chapter\s*\d+/i.test(line)) {
+    lines.forEach((line, i) => {
+      if (line.startsWith("📘 Book Title:")) {
+        bookName = line.replace(/📘 Book Title:\s*/i, "").trim();
+      } else if (line.toLowerCase().startsWith("#disclaimer")) {
+        const nextLine = lines[i + 1] || "";
+        if (nextLine.toLowerCase().startsWith("by ")) {
+          authorName = nextLine.replace(/by\s+/i, "").trim();
+        }
+      } else if (/^chapter\s+\d+/i.test(line)) {
+        // Start a new chapter
         if (currentChapter) {
           chapters.push(currentChapter);
         }
         currentChapter = {
-          title: line.trim(),  // keep "Chapter 1"
+          title: line,
           content: ""
         };
       } else {
@@ -103,15 +111,17 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       }
     });
 
+    // Push last chapter
     if (currentChapter) {
       chapters.push(currentChapter);
     }
 
     res.json({
-      fileUrl: cloudinaryUrl,
+      fileUrl: cloudinaryUrl, // ✅ Stored on Cloudinary
       bookName,
       authorName,
-      chapters, // ✅ [{ title: "Chapter 1", content: "..." }]
+      chapters, // [{title, content}]
+      rawText: plainText
     });
 
   } catch (err) {
