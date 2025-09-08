@@ -59,6 +59,7 @@ const upload = multer({ storage: storage });
 // 📌 Upload docx & convert to text
 app.post("/upload", upload.single("file"), async (req, res) => {
   try {
+      console.log("📥 Multer received file:", req.file);
     const cloudinaryUrl = req.file.path; // ✅ Cloudinary URL
 
     // 🔽 Download file temporarily
@@ -133,3 +134,4 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 app.listen(5000, () => {
   console.log("🚀 Server running on http://localhost:5000");
 });
+
